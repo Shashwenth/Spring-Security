@@ -9,6 +9,7 @@ import java.util.List;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -26,6 +27,7 @@ import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthen
 import org.springframework.security.oauth2.server.resource.web.access.BearerTokenAccessDeniedHandler;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -48,10 +50,9 @@ public class SecurityConfig {
         this.jwtConfigProperties = generateRsaKeyProperties();
     }
 
-    // Generate RSA Key Pair manually
     private RsaKeyProperties generateRsaKeyProperties() throws NoSuchAlgorithmException {
         KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-        keyPairGenerator.initialize(2048);  // 2048-bit key size
+        keyPairGenerator.initialize(2048); 
         KeyPair keyPair = keyPairGenerator.generateKeyPair();
 
         RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
@@ -60,36 +61,78 @@ public class SecurityConfig {
         return new RsaKeyProperties(publicKey, privateKey);
     }
 
+    // First Filter Chain for Form Login
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    @Order(1)
+    SecurityFilterChain securityFilterChainFormLogin(HttpSecurity http) throws Exception {
         return http
+                .securityMatcher("/api/**")
+                .authorizeHttpRequests(auth -> {
+                    auth.anyRequest().authenticated();
+                })
+                .formLogin(Customizer.withDefaults())
+                .logout(l -> l.logoutSuccessUrl("/api/hello-world"))
+                .addFilterBefore(new CustomFilter(), AuthorizationFilter.class)
+                .authenticationProvider(new ShashwenthAuthenticationProvider())
+                .httpBasic(Customizer.withDefaults())
+                .build();
+    }
+
+    @Bean
+    @Order(2)
+    SecurityFilterChain securityFilterChainToken(HttpSecurity http) throws Exception {
+        return http
+                .securityMatcher("/token")
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> {
-                    auth.requestMatchers("/hello-world").permitAll();
+                    auth.anyRequest().authenticated();
+                })
+                .httpBasic(Customizer.withDefaults())  // Enable HTTP Basic authentication
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .build();
+    }
+
+    // Third Filter Chain for JWT Authentication on /jwt/** endpoints
+    @Bean
+    @Order(3)
+    SecurityFilterChain securityFilterChainJwt(HttpSecurity http) throws Exception {
+        return http
+                .securityMatcher("/jwt/**")
+                .csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(auth -> {
                     auth.anyRequest().authenticated();
                 })
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
                 .exceptionHandling(ex -> ex
-                        .authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint())
-                        .accessDeniedHandler(new BearerTokenAccessDeniedHandler())
-                    )
-                .httpBasic(Customizer.withDefaults())
+                    .authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint())
+                    .accessDeniedHandler(new BearerTokenAccessDeniedHandler())
+                )
+                .build();
+    }
+
+    @Bean
+    @Order(4)
+    SecurityFilterChain securityFilterChainDefault(HttpSecurity http) throws Exception {
+        return http
+                .authorizeHttpRequests(auth -> {
+                    auth.anyRequest().permitAll();
+                })
                 .build();
     }
 
     @Bean
     UserDetailsService userDetailsService() {
         User user = (User) User.withUsername("user")
-                        .password("{noop}user")
-                        .roles("user")
-                        .build();
+                .password("{noop}user")
+                .roles("user")
+                .build();
 
         User admin = (User) User.withUsername("admin")
-                        .password("{noop}admin")
-                        .roles("admin")
-                        .build();
-        
+                .password("{noop}admin")
+                .roles("admin")
+                .build();
+
         User reader = (User) User.withUsername("Shashwen")
                 .password("{noop}Shashwen")
                 .authorities("read")
@@ -122,17 +165,16 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
-    
-	
-	@Bean
-	JwtAuthenticationConverter jwtAuthenticationConverter() {
-	    JwtGrantedAuthoritiesConverter grantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
-	    grantedAuthoritiesConverter.setAuthorityPrefix("ROLE_");  // Prefixes 'ROLE_' to the scopes
-	    grantedAuthoritiesConverter.setAuthoritiesClaimName("scope");  // Read authorities from 'scope' claim
-	
-	    JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter();
-	    jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(grantedAuthoritiesConverter);
-	    
-	    return jwtAuthenticationConverter;
-	}
+
+    @Bean
+    JwtAuthenticationConverter jwtAuthenticationConverter() {
+        JwtGrantedAuthoritiesConverter grantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
+        grantedAuthoritiesConverter.setAuthorityPrefix("ROLE_");  // Prefixes 'ROLE_' to the scopes
+        grantedAuthoritiesConverter.setAuthoritiesClaimName("scope");  // Read authorities from 'scope' claim
+
+        JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter();
+        jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(grantedAuthoritiesConverter);
+
+        return jwtAuthenticationConverter;
+    }
 }

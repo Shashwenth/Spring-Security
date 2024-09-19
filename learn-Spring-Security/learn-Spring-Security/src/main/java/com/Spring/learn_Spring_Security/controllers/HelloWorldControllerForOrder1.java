@@ -1,14 +1,13 @@
 package com.Spring.learn_Spring_Security.controllers;
 
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/jwt")
-public class HelloWorldController {
+@RequestMapping("/api")
+public class HelloWorldControllerForOrder1 {
 
 	@GetMapping(path = "/hello-world")
 	public String HelloWorld(Authentication authentication) {
@@ -18,10 +17,10 @@ public class HelloWorldController {
 //		System.out.println(authentication.toString());
 //		System.out.println("get class in authentication");
 //		System.out.println(authentication.getPrincipal().getClass());
-		return "Hello World ";
+		return "Hello World in /api";
 	}
 	
-	@PreAuthorize("hasAuthority('ROLE_read')")
+	
 	@GetMapping(path = "/private-world")
 	public String HelloPrivateWorld(Authentication authentication) {
 //		System.out.println("GetPrincipal ToString");
@@ -30,7 +29,7 @@ public class HelloWorldController {
 //		System.out.println(authentication.toString());
 //		System.out.println("get class in authentication");
 //		System.out.println(authentication.getPrincipal().getClass());
-		return "Hello Private World";
+		return "Hello Private World in /api";
 	}
 	
 }
