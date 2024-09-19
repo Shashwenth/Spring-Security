@@ -18,7 +18,6 @@ public class CustomFilter extends OncePerRequestFilter {
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
 			throws ServletException, IOException {
-		// TODO Auto-generated method stub
 		
 		if(!Collections.list(request.getHeaderNames()).contains("x-custom")) {
 			filterChain.doFilter(request, response);

@@ -1,5 +1,6 @@
 package com.Spring.learn_Spring_Security.controllers;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -18,7 +19,7 @@ public class HelloWorldController {
 		return "Hello World ";
 	}
 	
-	
+	@PreAuthorize("hasAuthority('ROLE_read')")
 	@GetMapping(path = "/private-world")
 	public String HelloPrivateWorld(Authentication authentication) {
 //		System.out.println("GetPrincipal ToString");
