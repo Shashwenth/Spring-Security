@@ -78,6 +78,8 @@ public class SecurityConfig {
                 .build();
     }
 
+    
+    //The below function allows user auth to function by using httbBasic this allows the Post to token
     @Bean
     @Order(2)
     SecurityFilterChain securityFilterChainToken(HttpSecurity http) throws Exception {
