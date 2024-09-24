@@ -1,0 +1,2 @@
+The initial version was working in Postman and Basic Auth. I didn't try in the 
+browser hence realized it does not work.

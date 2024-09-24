@@ -1,5 +1,6 @@
 package com.Spring.learn_Spring_Security.config;
 
+
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
@@ -38,15 +39,15 @@ import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
-//
-//@Configuration
-//@EnableWebSecurity
-//@EnableMethodSecurity
-public class SecurityConfig {
+
+@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity
+public class SpringConfig_v2 {
 
     private final RsaKeyProperties jwtConfigProperties;
 
-    public SecurityConfig() throws NoSuchAlgorithmException {
+    public SpringConfig_v2() throws NoSuchAlgorithmException {
         this.jwtConfigProperties = generateRsaKeyProperties();
     }
 
@@ -74,7 +75,6 @@ public class SecurityConfig {
                 .logout(l -> l.logoutSuccessUrl("/api/hello-world"))
                 .addFilterBefore(new CustomFilter(), AuthorizationFilter.class)
                 .authenticationProvider(new ShashwenthAuthenticationProvider())
-                .httpBasic(Customizer.withDefaults())
                 .build();
     }
 
@@ -114,12 +114,14 @@ public class SecurityConfig {
     }
 
     @Bean
-    @Order(4)
+    @Order(5)
     SecurityFilterChain securityFilterChainDefault(HttpSecurity http) throws Exception {
         return http
                 .authorizeHttpRequests(auth -> {
-                    auth.anyRequest().permitAll();
+                    auth.anyRequest().authenticated();
                 })
+                .formLogin(Customizer.withDefaults())
+                .logout(l -> l.logoutSuccessUrl("/login"))
                 .build();
     }
 
